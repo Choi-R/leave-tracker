@@ -165,9 +165,6 @@ function RequestsTable({ requests, allProfiles, deleteLeaveRequest }) {
                                     <td className={styles.empName}>
                                         <div style={{ display: 'flex', flexDirection: 'column' }}>
                                             <span>{req.profiles?.name || allProfiles?.find(p => p.id === req.user_id)?.name || 'Unknown'}</span>
-                                            <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 'normal' }}>
-                                                {req.profiles?.email || allProfiles?.find(p => p.id === req.user_id)?.email || 'No Email'}
-                                            </span>
                                         </div>
                                     </td>
                                     <td>
@@ -649,9 +646,6 @@ function CalendarView({ requests, allProfiles }) {
                             >
                                 <div style={{ display: 'flex', flexDirection: 'column' }}>
                                     <span>{p.name || 'Unknown'}</span>
-                                    <span style={{ fontSize: '0.65rem', color: 'var(--text-muted)', fontWeight: 'normal', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                                        {p.email || 'No Email'}
-                                    </span>
                                 </div>
                             </td>
                             <td

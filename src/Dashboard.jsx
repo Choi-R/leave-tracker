@@ -219,10 +219,12 @@ export default function Dashboard({ session }) {
                             <line x1="3" y1="10" x2="21" y2="10"></line>
                         </svg>
                         <h1 className={styles.title}>Leave Tracker</h1>
-                        <span className={styles.roleBadge}>{profile.role}</span>
+                        {profile.role === 'admin' && (
+                            <span className={styles.roleBadge}>Admin</span>
+                        )}
                     </div>
                     <div className={styles.userSection}>
-                        <span className={styles.greeting}>Hey, {profile.name || session.user.email}</span>
+                        <span className={styles.greeting}>Hi, {profile.name || session.user.email}</span>
                         <button
                             className={styles.signOutBtn}
                             onClick={handleSignOut}
