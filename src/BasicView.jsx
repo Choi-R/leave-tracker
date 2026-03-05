@@ -1,15 +1,22 @@
 import { useState } from 'react'
 import styles from './BasicView.module.css'
 
+// BasicView is the standard dashboard for regular employees.
+// It shows their remaining quotas, a form to request leave, and a history of their requests.
 export default function BasicView({ profile, requests, leaveTypes, submitLeaveRequest, deleteLeaveRequest }) {
+    // --- STATE VARIABLES FOR THE FORM ---
+    // We default the selected leave type to the first one in the database (usually 'Annual')
     const [typeId, setTypeId] = useState(leaveTypes.length > 0 ? leaveTypes[0].id : '')
     const [date, setDate] = useState('')
     const [amount, setAmount] = useState('1')
     const [notes, setNotes] = useState('')
-    const [submitting, setSubmitting] = useState(false)
-    const [currentPage, setCurrentPage] = useState(1)
-    const itemsPerPage = 4
 
+    // --- STATE VARIABLES FOR UI ---
+    const [submitting, setSubmitting] = useState(false) // Disables the submit button while saving
+    const [currentPage, setCurrentPage] = useState(1)   // Pagination for the history table
+    const itemsPerPage = 4 // Show 4 past requests at a time
+
+    // Get the current year so we only calculate quotas for THIS year
     const currentYear = new Date().getFullYear().toString()
 
     const formatDate = (dateStr) => {
@@ -18,33 +25,45 @@ export default function BasicView({ profile, requests, leaveTypes, submitLeaveRe
         return `${d}/${m}/${y}`;
     }
 
-    // Calculate used quotas strictly for the current year
+    // --- QUOTA MATH ---
+    // Calculate total used annual leave in the current year.
+    // 1. Filter the user's requests to only include those from this year AND in the 'deductible' category
+    // 2. Add up all the 'amount' values using reduce()
     const usedYearly = requests
         .filter(req => req.date.substring(0, 4) === currentYear && req.leave_types?.category === 'deductible')
         .reduce((sum, req) => sum + Number(req.amount), 0)
 
+    // Calculate total used sick leave in the current year
     const usedSick = requests
         .filter(req => req.date.substring(0, 4) === currentYear && req.leave_types?.category === 'sick')
         .reduce((sum, req) => sum + Number(req.amount), 0)
 
+    // Subtract what they've used from what they were given
     const remainingYearly = profile.yearly_quota - usedYearly
     const remainingSick = profile.sick_quota - usedSick
 
+    // --- EVENT HANDLERS ---
     const handleSubmit = async (e) => {
+        // Prevent page refresh on submit
         e.preventDefault()
+
+        // Basic validation
         if (!typeId || !date || !amount) return
 
         setSubmitting(true)
+        // Call the parent component's function to save to the database
         await submitLeaveRequest(typeId, date, Number(amount), notes)
         setSubmitting(false)
 
+        // Clear the form for the next request
         setDate('')
         setAmount('1')
         setNotes('')
-        setCurrentPage(1) // Snap back to page 1 on new submission
+        setCurrentPage(1) // Snap back to page 1 to see the newly added request
     }
 
-    // Pagination logic
+    // --- DATA PREPARATION ---
+    // Pagination logic: figure out which slice of the requests array to show
     const totalPages = Math.ceil(requests.length / itemsPerPage)
     const startIndex = (currentPage - 1) * itemsPerPage
     const paginatedRequests = requests.slice(startIndex, startIndex + itemsPerPage)

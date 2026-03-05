@@ -132,6 +132,65 @@ export default function Dashboard({ session }) {
         }
     }
 
+    // --- LEAVE TYPE CRUD HANDLERS ---
+
+    // Add a new leave type
+    const addLeaveType = async (name, category) => {
+        try {
+            const { data, error } = await supabase
+                .from('leave_types')
+                .insert([{ name, category }])
+                .select()
+                .single()
+
+            if (error) throw error
+
+            setLeaveTypes(prev => [...prev, data].sort((a, b) => a.name.localeCompare(b.name)))
+        } catch (err) {
+            alert("Error adding leave type: " + err.message)
+        }
+    }
+
+    // Update an existing leave type
+    const updateLeaveType = async (id, name, category) => {
+        try {
+            const { error } = await supabase
+                .from('leave_types')
+                .update({ name, category })
+                .eq('id', id)
+
+            if (error) throw error
+
+            setLeaveTypes(prev => prev.map(t =>
+                t.id === id ? { ...t, name, category } : t
+            ).sort((a, b) => a.name.localeCompare(b.name)))
+        } catch (err) {
+            alert("Error updating leave type: " + err.message)
+        }
+    }
+
+    // Delete a leave type
+    const deleteLeaveType = async (id) => {
+        try {
+            const { error } = await supabase
+                .from('leave_types')
+                .delete()
+                .eq('id', id)
+
+            if (error) {
+                // If the leave type is already used in a leave request, deleting it violates foreign keys.
+                if (error.code === '23503') {
+                    throw new Error("Cannot delete this leave type because it is already used in existing leave requests.")
+                }
+                throw error
+            }
+
+            setLeaveTypes(prev => prev.filter(t => t.id !== id))
+        } catch (err) {
+            alert("Error deleting leave type: " + err.message)
+        }
+    }
+
     // --- USER ACTION HANDLERS ---
     // These functions are passed down to both BasicView and AdminView (since admins can also take leave).
 
@@ -275,6 +334,9 @@ export default function Dashboard({ session }) {
                         addNewProfileLocally={addNewProfileLocally}
                         deleteProfile={deleteProfile}
                         deleteLeaveRequest={deleteLeaveRequest}
+                        addLeaveType={addLeaveType}
+                        updateLeaveType={updateLeaveType}
+                        deleteLeaveType={deleteLeaveType}
                     />
                 ) : (
                     <BasicView

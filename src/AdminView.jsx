@@ -7,7 +7,7 @@ import styles from './AdminView.module.css'
 // AdminView is only rendered if the logged-in user has the 'admin' role.
 // It receives data (like all profiles and all requests) and functions (like deleteProfile) 
 // as "props" from Dashboard.jsx.
-export default function AdminView({ profile, allProfiles, requests, leaveTypes, updateProfileQuotas, submitLeaveRequest, addNewProfileLocally, deleteProfile, deleteLeaveRequest }) {
+export default function AdminView({ profile, allProfiles, requests, leaveTypes, updateProfileQuotas, submitLeaveRequest, addNewProfileLocally, deleteProfile, deleteLeaveRequest, addLeaveType, updateLeaveType, deleteLeaveType }) {
     // --- STATE VARIABLES ---
     // activeTab controls which section of the admin dashboard is currently visible
     const [activeTab, setActiveTab] = useState('requests') // 'requests', 'profiles', or 'my_leave'
@@ -40,6 +40,12 @@ export default function AdminView({ profile, allProfiles, requests, leaveTypes, 
                     Manage Employee
                 </button>
                 <button
+                    className={`${styles.tabBtn} ${activeTab === 'leave_types' ? styles.activeTab : ''}`}
+                    onClick={() => setActiveTab('leave_types')}
+                >
+                    Leave Types
+                </button>
+                <button
                     className={`${styles.tabBtn} ${activeTab === 'my_leave' ? styles.activeTab : ''}`}
                     onClick={() => setActiveTab('my_leave')}
                 >
@@ -63,6 +69,15 @@ export default function AdminView({ profile, allProfiles, requests, leaveTypes, 
                         <AddEmployeeForm onEmployeeAdded={addNewProfileLocally} />
                         <ProfilesTable profiles={allProfiles} requests={requests} updateProfileQuotas={updateProfileQuotas} deleteProfile={deleteProfile} />
                     </>
+                )}
+
+                {activeTab === 'leave_types' && (
+                    <LeaveTypesTable
+                        leaveTypes={leaveTypes}
+                        addLeaveType={addLeaveType}
+                        updateLeaveType={updateLeaveType}
+                        deleteLeaveType={deleteLeaveType}
+                    />
                 )}
 
                 {activeTab === 'my_leave' && (
@@ -392,14 +407,17 @@ function ProfileRow({ profile, requests, updateProfileQuotas, deleteProfile }) {
     )
 }
 
+// A form to create a new user account directly from the admin dashboard
 function AddEmployeeForm({ onEmployeeAdded }) {
-    const [isExpanded, setIsExpanded] = useState(false)
+    // --- STATE VARIABLES ---
+    const [isExpanded, setIsExpanded] = useState(false) // Toggles the form visibility
     const [loading, setLoading] = useState(false)
     const [email, setEmail] = useState('')
     const [name, setName] = useState('')
     const [role, setRole] = useState('employee')
-    const [msg, setMsg] = useState({ type: '', text: '' })
+    const [msg, setMsg] = useState({ type: '', text: '' }) // Feedback message (error or success)
 
+    // --- FORM SUBMISSION HANDLER ---
     const handleAddUser = async (e) => {
         e.preventDefault()
         setLoading(true)
@@ -563,26 +581,32 @@ function AddEmployeeForm({ onEmployeeAdded }) {
     )
 }
 
+// Visualizes leave requests on a monthly calendar grid
 function CalendarView({ requests, allProfiles }) {
-    // Get current month and year
+    // --- DATE PREPARATION ---
+    // Get current month and year to know what specific month to draw
     const today = new Date()
     const currentYear = today.getFullYear()
-    const currentMonth = today.getMonth() // 0-11
-    const monthName = today.toLocaleString('default', { month: 'long' })
+    const currentMonth = today.getMonth() // Note: match in JS is 0-indexed (0-11)
+    const monthName = today.toLocaleString('default', { month: 'long' }) // e.g., "October"
 
     // Build array of days in the month
+    // "new Date(year, month + 1, 0)" is a trick to get the LAST day of the current month
     const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate()
+
+    // Create an array mapping each number from 1 to daysInMonth, attaching extra info like if it's a weekend
     const days = Array.from({ length: daysInMonth }, (_, i) => {
         const date = new Date(currentYear, currentMonth, i + 1)
         return {
             dateNum: i + 1,
             dayName: date.toLocaleDateString('en-US', { weekday: 'short' }),
-            isWeekend: date.getDay() === 0 || date.getDay() === 6
+            isWeekend: date.getDay() === 0 || date.getDay() === 6 // 0 is Sunday, 6 is Saturday
         }
     })
 
-    // Map leave requests to cells
-    // Strategy: create a structure like activeLeavesMap[user_id][date_number] = "badge text/style"
+    // --- MAPPING LEAVE TO CALENDAR ---
+    // Map leave requests to specific cells on the calendar grid.
+    // Strategy: create a dictionary structure like activeLeavesMap[user_id][date_number] = "badge text/style"
     const activeLeavesMap = {}
 
     requests.forEach(req => {
@@ -734,5 +758,183 @@ function CalendarView({ requests, allProfiles }) {
                 </tbody>
             </table>
         </div>
+    )
+}
+
+function LeaveTypesTable({ leaveTypes, addLeaveType, updateLeaveType, deleteLeaveType }) {
+    const [newName, setNewName] = useState('')
+    const [newCategory, setNewCategory] = useState('non-deductible')
+    const [isAdding, setIsAdding] = useState(false)
+
+    const handleAdd = async (e) => {
+        e.preventDefault()
+        if (!newName) return
+        setIsAdding(true)
+        await addLeaveType(newName, newCategory)
+        setNewName('')
+        setNewCategory('non-deductible')
+        setIsAdding(false)
+    }
+
+    return (
+        <div className={styles.tableContainer}>
+            <div style={{ padding: '1.5rem', borderBottom: '1px solid var(--border)', background: 'var(--surface)' }}>
+                <h3 style={{ margin: '0 0 1rem 0', fontSize: '1.25rem' }}>Manage Leave Types</h3>
+                <form onSubmit={handleAdd} style={{ display: 'flex', gap: '1rem', alignItems: 'flex-end', flexWrap: 'wrap' }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', flex: 1, minWidth: '200px' }}>
+                        <label style={{ fontSize: '0.875rem', color: 'var(--text-muted)' }}>Type Name</label>
+                        <input
+                            type="text"
+                            required
+                            value={newName}
+                            onChange={e => setNewName(e.target.value)}
+                            style={{ padding: '0.625rem 0.75rem', borderRadius: '6px', border: '1px solid var(--border)', background: 'var(--background)', color: 'var(--text)' }}
+                            placeholder="e.g. Bereavement, Maternity"
+                        />
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', flex: 1, minWidth: '200px' }}>
+                        <label style={{ fontSize: '0.875rem', color: 'var(--text-muted)' }}>Category</label>
+                        <select
+                            value={newCategory}
+                            onChange={e => setNewCategory(e.target.value)}
+                            style={{ padding: '0.625rem 0.75rem', borderRadius: '6px', border: '1px solid var(--border)', background: 'var(--background)', color: 'var(--text)', cursor: 'pointer' }}
+                        >
+                            <option value="deductible">Deductible (from Annual Quota)</option>
+                            <option value="sick">Sick (from Sick Quota)</option>
+                            <option value="non-deductible">Non-deductible</option>
+                        </select>
+                    </div>
+                    <button
+                        type="submit"
+                        disabled={isAdding}
+                        style={{
+                            padding: '0.5rem 1.5rem',
+                            background: 'var(--primary)',
+                            color: 'white',
+                            borderRadius: '6px',
+                            height: '41px',
+                            opacity: isAdding ? 0.7 : 1,
+                            whiteSpace: 'nowrap'
+                        }}>
+                        {isAdding ? 'Adding...' : 'Add Leave Type'}
+                    </button>
+                </form>
+            </div>
+
+            <table className={styles.table}>
+                <thead>
+                    <tr>
+                        <th style={{ width: '40%' }}>Type Name</th>
+                        <th style={{ width: '40%' }}>Category</th>
+                        <th style={{ width: '20%' }}>Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {leaveTypes.map(type => (
+                        <LeaveTypeRow
+                            key={type.id}
+                            type={type}
+                            updateLeaveType={updateLeaveType}
+                            deleteLeaveType={deleteLeaveType}
+                        />
+                    ))}
+                    {leaveTypes.length === 0 && (
+                        <tr>
+                            <td colSpan="3" style={{ textAlign: 'center', padding: '1.5rem', color: 'var(--text-muted)' }}>
+                                No leave types configured.
+                            </td>
+                        </tr>
+                    )}
+                </tbody>
+            </table>
+        </div>
+    )
+}
+
+function LeaveTypeRow({ type, updateLeaveType, deleteLeaveType }) {
+    const [isEditing, setIsEditing] = useState(false)
+    const [name, setName] = useState(type.name)
+    const [category, setCategory] = useState(type.category)
+    const [isSaving, setIsSaving] = useState(false)
+
+    const handleSave = async () => {
+        setIsSaving(true)
+        await updateLeaveType(type.id, name, category)
+        setIsSaving(false)
+        setIsEditing(false)
+    }
+
+    const handleDelete = async () => {
+        if (window.confirm(`Are you sure you want to delete the leave type "${type.name}"?`)) {
+            await deleteLeaveType(type.id)
+        }
+    }
+
+    if (isEditing) {
+        return (
+            <tr>
+                <td>
+                    <input
+                        type="text"
+                        value={name}
+                        onChange={e => setName(e.target.value)}
+                        style={{ width: '100%', padding: '0.4rem 0.75rem', borderRadius: '4px', border: '1px solid var(--primary)', background: 'var(--background)', color: 'var(--text)' }}
+                    />
+                </td>
+                <td>
+                    <select
+                        value={category}
+                        onChange={e => setCategory(e.target.value)}
+                        style={{ width: '100%', padding: '0.4rem 0.75rem', borderRadius: '4px', border: '1px solid var(--primary)', background: 'var(--background)', color: 'var(--text)' }}
+                    >
+                        <option value="deductible">deductible</option>
+                        <option value="sick">sick</option>
+                        <option value="non-deductible">non-deductible</option>
+                    </select>
+                </td>
+                <td>
+                    <div className={styles.actionBtns}>
+                        <button className={styles.saveBtn} onClick={handleSave} disabled={isSaving || !name.trim()} title="Save" style={{ padding: '0.4rem', display: 'flex' }}>
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                        </button>
+                        <button className={styles.cancelBtn} onClick={() => { setIsEditing(false); setName(type.name); setCategory(type.category); }} disabled={isSaving} title="Cancel" style={{ padding: '0.4rem', display: 'flex' }}>
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                        </button>
+                    </div>
+                </td>
+            </tr>
+        )
+    }
+
+    return (
+        <tr>
+            <td style={{ fontWeight: '500' }}>{type.name}</td>
+            <td>
+                <span style={{
+                    padding: '0.2rem 0.6rem',
+                    borderRadius: '12px',
+                    fontSize: '0.75rem',
+                    backgroundColor: type.category === 'sick' ? 'rgba(239, 68, 68, 0.1)' :
+                        type.category === 'deductible' ? 'rgba(59, 130, 246, 0.1)' :
+                            'rgba(168, 85, 247, 0.1)',
+                    color: type.category === 'sick' ? '#dc2626' :
+                        type.category === 'deductible' ? '#2563eb' :
+                            '#9333ea',
+                    fontWeight: '500'
+                }}>
+                    {type.category}
+                </span>
+            </td>
+            <td>
+                <div className={styles.actionBtns}>
+                    <button className={styles.editBtn} onClick={() => setIsEditing(true)} title="Edit Leave Type" style={{ padding: '0.4rem', display: 'flex' }}>
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
+                    </button>
+                    <button className={styles.cancelBtn} onClick={handleDelete} title="Delete Leave Type" style={{ padding: '0.4rem', display: 'flex' }}>
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>
+                    </button>
+                </div>
+            </td>
+        </tr>
     )
 }
