@@ -4,7 +4,7 @@ import { supabase, supabaseUrl, supabaseAnonKey } from './supabaseClient'
 import BasicView from './BasicView'
 import styles from './AdminView.module.css'
 
-export default function AdminView({ profile, allProfiles, requests, leaveTypes, updateProfileQuotas, submitLeaveRequest, addNewProfileLocally, deleteProfile }) {
+export default function AdminView({ profile, allProfiles, requests, leaveTypes, updateProfileQuotas, submitLeaveRequest, addNewProfileLocally, deleteProfile, deleteLeaveRequest }) {
     const [activeTab, setActiveTab] = useState('requests') // 'requests', 'profiles', or 'my_leave'
 
     const myRequests = requests.filter(req => req.user_id === profile.id)
@@ -41,7 +41,7 @@ export default function AdminView({ profile, allProfiles, requests, leaveTypes, 
 
             <div className={styles.contentPanel}>
                 {activeTab === 'requests' && (
-                    <RequestsTable requests={requests} allProfiles={allProfiles} />
+                    <RequestsTable requests={requests} allProfiles={allProfiles} deleteLeaveRequest={deleteLeaveRequest} />
                 )}
                 {activeTab === 'calendar' && (
                     <CalendarView requests={requests} allProfiles={allProfiles} />
