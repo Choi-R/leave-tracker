@@ -1,0 +1,58 @@
+:root {
+  --primary: #005cf5;
+  --primary-hover: #004ac7;
+  --background: #f8fafc;
+  --surface: #ffffff;
+  --surface-hover: #f1f5f9;
+  --text: #1e293b;
+  --text-muted: #64748b;
+  --error: #ef4444;
+  --success: #10b981;
+  --border: #e2e8f0;
+  --radius: 12px;
+  --font-sans: 'Inter', system-ui, sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: var(--font-sans);
+  background-color: #0c1527;
+  color: var(--text);
+  line-height: 1.5;
+  /* Deep navy to vibrant purple mesh gradient inspired by NewsFactory hero */
+  background-image:
+    radial-gradient(circle at 70% -20%, #764cc9 0%, transparent 50%),
+    radial-gradient(circle at 100% 60%, #9fa5fa 0%, transparent 40%),
+    linear-gradient(130deg, #091322 0%, #153268 40%, #512b92 100%);
+  background-attachment: fixed;
+  min-height: 100vh;
+}
+
+button {
+  cursor: pointer;
+  font-family: var(--font-sans);
+  border: none;
+  background: none;
+}
+
+input,
+select,
+textarea {
+  font-family: var(--font-sans);
+  color: var(--text);
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  color: #0f172a;
+  font-weight: 700;
+}

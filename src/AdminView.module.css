@@ -1,0 +1,192 @@
+.container {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+.tabs {
+    display: flex;
+    gap: 1rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+    padding-bottom: 0.5rem;
+}
+
+.tabBtn {
+    padding: 0.75rem 1.5rem;
+    background: transparent;
+    color: rgba(255, 255, 255, 0.6);
+    border: none;
+    font-weight: 600;
+    font-size: 1rem;
+    cursor: pointer;
+    position: relative;
+    transition: color 0.2s;
+}
+
+.tabBtn:hover {
+    color: #ffffff;
+}
+
+.activeTab {
+    color: #ffffff;
+}
+
+.activeTab::after {
+    content: '';
+    position: absolute;
+    bottom: -0.5rem;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background-color: #ffffff;
+    border-radius: 3px 3px 0 0;
+}
+
+.contentPanel {
+    background-color: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 1.5rem;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+}
+
+.tableContainer {
+    overflow-x: auto;
+}
+
+.table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    text-align: left;
+}
+
+.table th {
+    padding: 1rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-muted);
+    border-bottom: 1px solid var(--border);
+}
+
+.table td {
+    padding: 1.25rem 1rem;
+    font-size: 0.875rem;
+    border-bottom: 1px solid var(--border);
+    vertical-align: middle;
+}
+
+.table tr:last-child td {
+    border-bottom: none;
+}
+
+.table tr:hover td {
+    background-color: var(--surface-hover);
+}
+
+.empName {
+    font-weight: 600;
+    color: var(--text);
+}
+
+.roleCell {
+    text-transform: capitalize;
+    color: var(--text-muted);
+}
+
+.dateCell {
+    font-family: monospace;
+    color: var(--text);
+}
+
+.amountCell {
+    font-weight: 600;
+    color: var(--primary);
+}
+
+.typeBadge {
+    display: inline-block;
+    padding: 0.25rem 0.625rem;
+    border-radius: 9999px;
+    background-color: var(--background);
+    border: 1px solid var(--border);
+    font-size: 0.75rem;
+    font-weight: 500;
+    color: var(--text);
+}
+
+.notesCell {
+    color: var(--text-muted);
+    max-width: 200px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.quotaInput {
+    background: var(--background);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 0.5rem;
+    border-radius: 4px;
+    width: 80px;
+}
+
+.quotaInput:focus {
+    outline: none;
+    border-color: var(--primary);
+}
+
+.actionBtns {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.editBtn {
+    background-color: var(--background);
+    color: var(--text);
+    border: 1px solid var(--border);
+    padding: 0.5rem 1rem;
+    border-radius: 6px;
+    font-weight: 500;
+    font-size: 0.875rem;
+    transition: all 0.2s;
+}
+
+.editBtn:hover {
+    background-color: var(--surface-hover);
+}
+
+.saveBtn {
+    background-color: var(--success);
+    color: white;
+    border: none;
+    padding: 0.5rem 1rem;
+    border-radius: 6px;
+    font-weight: 500;
+}
+
+.saveBtn:hover {
+    background-color: #059669;
+}
+
+.cancelBtn {
+    background-color: rgba(239, 68, 68, 0.1);
+    color: var(--error);
+    border: none;
+    padding: 0.5rem 1rem;
+    border-radius: 6px;
+    font-weight: 500;
+}
+
+.cancelBtn:hover {
+    background-color: rgba(239, 68, 68, 0.2);
+}
+
+.emptyState {
+    color: var(--text-muted);
+    text-align: center;
+    padding: 2rem 0;
+}

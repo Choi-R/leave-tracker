@@ -1,0 +1,128 @@
+.container {
+    display: flex;
+    min-height: 100vh;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem;
+}
+
+.card {
+    width: 100%;
+    max-width: 400px;
+    background-color: var(--surface);
+    border-radius: var(--radius);
+    padding: 2rem;
+    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5), 0 8px 10px -6px rgba(0, 0, 0, 0.3);
+    border: 1px solid var(--border);
+}
+
+.logo {
+    text-align: center;
+    margin-bottom: 2rem;
+}
+
+.title {
+    font-size: 1.5rem;
+    font-weight: 700;
+    margin-bottom: 0.5rem;
+}
+
+.subtitle {
+    color: var(--text-muted);
+    font-size: 0.875rem;
+}
+
+.form {
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+}
+
+.error {
+    background-color: rgba(239, 68, 68, 0.1);
+    color: var(--error);
+    padding: 0.75rem;
+    border-radius: 6px;
+    font-size: 0.875rem;
+    border: 1px solid rgba(239, 68, 68, 0.2);
+}
+
+.inputGroup {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.label {
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: var(--text-muted);
+}
+
+.input {
+    width: 100%;
+    padding: 0.75rem 1rem;
+    border-radius: 6px;
+    background-color: var(--background);
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-size: 1rem;
+    transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.input:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 2px rgba(79, 70, 229, 0.2);
+}
+
+.button {
+    width: 100%;
+    padding: 0.75rem;
+    background-color: var(--primary);
+    color: white;
+    font-weight: 600;
+    border-radius: 6px;
+    font-size: 1rem;
+    transition: background-color 0.2s, transform 0.1s;
+    margin-top: 0.5rem;
+}
+
+.button:hover:not(:disabled) {
+    background-color: var(--primary-hover);
+}
+
+.button:active:not(:disabled) {
+    transform: scale(0.98);
+}
+
+.button:disabled {
+    opacity: 0.7;
+    cursor: not-allowed;
+}
+
+.success {
+    background-color: rgba(16, 185, 129, 0.1);
+    color: var(--success);
+    padding: 0.75rem;
+    border-radius: 6px;
+    font-size: 0.875rem;
+    border: 1px solid rgba(16, 185, 129, 0.2);
+}
+
+.toggleMode {
+    text-align: center;
+    margin-top: 0.5rem;
+}
+
+.textButton {
+    color: var(--primary);
+    font-size: 0.875rem;
+    font-weight: 500;
+    transition: color 0.2s;
+}
+
+.textButton:hover {
+    color: var(--primary-hover);
+    text-decoration: underline;
+}
