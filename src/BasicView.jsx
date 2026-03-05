@@ -8,6 +8,7 @@ export default function BasicView({ profile, requests, leaveTypes, submitLeaveRe
     // We default the selected leave type to the first one in the database (usually 'Annual')
     const [typeId, setTypeId] = useState(leaveTypes.length > 0 ? leaveTypes[0].id : '')
     const [date, setDate] = useState('')
+    const [displayDate, setDisplayDate] = useState('') // Used for manual dd/mm/yyyy typing
     const [amount, setAmount] = useState('1')
     const [notes, setNotes] = useState('')
 
@@ -43,6 +44,52 @@ export default function BasicView({ profile, requests, leaveTypes, submitLeaveRe
     const remainingSick = profile.sick_quota - usedSick
 
     // --- EVENT HANDLERS ---
+    const updateDateFromPicker = (yyyy_mm_dd) => {
+        setDate(yyyy_mm_dd)
+        if (yyyy_mm_dd) {
+            const [y, m, d] = yyyy_mm_dd.split('-')
+            setDisplayDate(`${d}/${m}/${y}`)
+        } else {
+            setDisplayDate('')
+        }
+    }
+
+    const handleTextBlur = () => {
+        const val = displayDate.trim()
+        if (!val) {
+            setDate('')
+            return
+        }
+
+        // Try parsing dd/mm/yyyy or dd-mm-yyyy
+        const match = val.match(/^(\d{1,2})[/-](\d{1,2})[/-](\d{2,4})$/)
+        if (match) {
+            let day = match[1].padStart(2, '0')
+            let month = match[2].padStart(2, '0')
+            let year = match[3]
+            if (year.length === 2) {
+                year = `20${year}`
+            }
+
+            const numMonth = parseInt(month, 10)
+            const numDay = parseInt(day, 10)
+
+            if (numMonth >= 1 && numMonth <= 12 && numDay >= 1 && numDay <= 31) {
+                setDate(`${year}-${month}-${day}`)
+                setDisplayDate(`${day}/${month}/${year}`)
+                return
+            }
+        }
+
+        // Revert to known valid date if typing was invalid
+        if (date) {
+            const [y, m, d] = date.split('-')
+            setDisplayDate(`${d}/${m}/${y}`)
+        } else {
+            setDate('')
+        }
+    }
+
     const handleSubmit = async (e) => {
         // Prevent page refresh on submit
         e.preventDefault()
@@ -57,6 +104,7 @@ export default function BasicView({ profile, requests, leaveTypes, submitLeaveRe
 
         // Clear the form for the next request
         setDate('')
+        setDisplayDate('')
         setAmount('1')
         setNotes('')
         setCurrentPage(1) // Snap back to page 1 to see the newly added request
@@ -124,13 +172,47 @@ export default function BasicView({ profile, requests, leaveTypes, submitLeaveRe
                         <div className={styles.formRow}>
                             <div className={styles.inputGroup}>
                                 <label>Date</label>
-                                <input
-                                    type="date"
-                                    value={date}
-                                    onChange={e => setDate(e.target.value)}
-                                    required
-                                    style={{ width: '100%' }}
-                                />
+                                <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                                    <input
+                                        type="text"
+                                        value={displayDate}
+                                        onChange={e => setDisplayDate(e.target.value)}
+                                        onBlur={handleTextBlur}
+                                        placeholder="dd/mm/yyyy"
+                                        required
+                                        style={{ width: '100%', paddingRight: '40px' }}
+                                    />
+                                    <div
+                                        style={{ position: 'absolute', right: '0', top: 0, bottom: 0, width: '40px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
+                                        onClick={(e) => {
+                                            const dp = e.currentTarget.querySelector('input[type="date"]');
+                                            if (dp && dp.showPicker) dp.showPicker();
+                                        }}
+                                    >
+                                        <input
+                                            type="date"
+                                            value={date}
+                                            onChange={(e) => updateDateFromPicker(e.target.value)}
+                                            style={{
+                                                position: 'absolute',
+                                                width: 0,
+                                                height: 0,
+                                                opacity: 0,
+                                                padding: 0,
+                                                margin: 0,
+                                                border: 'none'
+                                            }}
+                                            tabIndex="-1"
+                                            required={!date} // Ensure form validation catches missing date
+                                        />
+                                        <svg style={{ pointerEvents: 'none', color: 'var(--text-muted)' }} width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                            <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                                            <line x1="16" y1="2" x2="16" y2="6"></line>
+                                            <line x1="8" y1="2" x2="8" y2="6"></line>
+                                            <line x1="3" y1="10" x2="21" y2="10"></line>
+                                        </svg>
+                                    </div>
+                                </div>
                             </div>
                             <div className={styles.inputGroup}>
                                 <label>Days Amount</label>
