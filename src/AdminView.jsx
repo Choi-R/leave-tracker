@@ -4,12 +4,20 @@ import { supabase, supabaseUrl, supabaseAnonKey } from './supabaseClient'
 import BasicView from './BasicView'
 import styles from './AdminView.module.css'
 
+// AdminView is only rendered if the logged-in user has the 'admin' role.
+// It receives data (like all profiles and all requests) and functions (like deleteProfile) 
+// as "props" from Dashboard.jsx.
 export default function AdminView({ profile, allProfiles, requests, leaveTypes, updateProfileQuotas, submitLeaveRequest, addNewProfileLocally, deleteProfile, deleteLeaveRequest }) {
+    // --- STATE VARIABLES ---
+    // activeTab controls which section of the admin dashboard is currently visible
     const [activeTab, setActiveTab] = useState('requests') // 'requests', 'profiles', or 'my_leave'
 
+    // --- DERIVED STATE ---
+    // We filter the massive 'requests' array (which contains EVERYONE's requests)
+    // to only include ones belonging to the currently logged in admin.
     const myRequests = requests.filter(req => req.user_id === profile.id)
 
-
+    // --- RENDER FLOW ---
     return (
         <div className={styles.container}>
             <div className={styles.tabs}>
@@ -40,22 +48,28 @@ export default function AdminView({ profile, allProfiles, requests, leaveTypes, 
             </div>
 
             <div className={styles.contentPanel}>
+                {/* Render the specific component based on which tab is active */}
+
                 {activeTab === 'requests' && (
                     <RequestsTable requests={requests} allProfiles={allProfiles} deleteLeaveRequest={deleteLeaveRequest} />
                 )}
+
                 {activeTab === 'calendar' && (
                     <CalendarView requests={requests} allProfiles={allProfiles} />
                 )}
+
                 {activeTab === 'profiles' && (
                     <>
                         <AddEmployeeForm onEmployeeAdded={addNewProfileLocally} />
                         <ProfilesTable profiles={allProfiles} requests={requests} updateProfileQuotas={updateProfileQuotas} deleteProfile={deleteProfile} />
                     </>
                 )}
+
                 {activeTab === 'my_leave' && (
+                    // Admins use the exact same BasicView component for their own leave as regular employees do!
                     <BasicView
                         profile={profile}
-                        requests={myRequests}
+                        requests={myRequests} // Notice we pass the filtered requests here, not all requests
                         leaveTypes={leaveTypes}
                         submitLeaveRequest={submitLeaveRequest}
                         updateProfileQuotas={updateProfileQuotas}
@@ -67,39 +81,59 @@ export default function AdminView({ profile, allProfiles, requests, leaveTypes, 
     )
 }
 
-function RequestsTable({ requests, allProfiles, deleteLeaveRequest }) {
-    const currentYear = new Date().getFullYear().toString()
-    const [yearFilter, setYearFilter] = useState(currentYear)
-    const [userFilter, setUserFilter] = useState('all')
-    const [currentPage, setCurrentPage] = useState(1)
-    const itemsPerPage = 10
+// --- SUB-COMPONENTS ---
+// These are smaller components defined in the same file to keep things organized.
+// They are only used by AdminView.
 
+function RequestsTable({ requests, allProfiles, deleteLeaveRequest }) {
+    // We need to figure out what the current year is so we can set it as the default filter
+    const currentYear = new Date().getFullYear().toString()
+
+    // --- STATE VARIABLES ---
+    const [yearFilter, setYearFilter] = useState(currentYear) // The currently selected year in the dropdown
+    const [userFilter, setUserFilter] = useState('all')       // The currently selected user in the dropdown
+    const [currentPage, setCurrentPage] = useState(1)         // For pagination tracking
+
+    const itemsPerPage = 10 // How many rows to show per page
+
+    // A small helper function to format dates from YYYY-MM-DD to DD/MM/YYYY
     const formatDate = (dateStr) => {
         if (!dateStr) return '';
         const [y, m, d] = dateStr.split('-');
         return `${d}/${m}/${y}`;
     }
 
-    // Compute unique years from requests for the dropdown
+    // --- DATA PREPARATION ---
+
+    // 1. Build the dropdown options for years.
+    // We map over all requests, grab the first 4 characters (the year), put them in a Set (to remove duplicates),
+    // convert it back to an array, and sort it from newest to oldest.
     const availableYears = Array.from(new Set(requests.map(req => req.date.substring(0, 4)))).sort((a, b) => b - a)
     if (!availableYears.includes(currentYear)) {
-        availableYears.unshift(currentYear) // Ensure current year is always an option
+        availableYears.unshift(currentYear) // Ensure current year is always an option even if there are no requests
     }
 
-    // Filter logic
+    // 2. Filter the requests based on what the user selected in the dropdowns.
     const filteredRequests = requests.filter(req => {
         const reqYear = req.date.substring(0, 4)
+
+        // If the years don't match (and we aren't showing 'all'), throw this row away
         if (yearFilter !== 'all' && reqYear !== yearFilter) return false
+
+        // If the users don't match (and we aren't showing 'all'), throw this row away
         if (userFilter !== 'all' && req.user_id !== userFilter) return false
+
+        // If it passed all tests, keep it
         return true
     })
 
-    // Pagination logic
+    // 3. Slice the filtered list for pagination
     const totalPages = Math.ceil(filteredRequests.length / itemsPerPage)
     const startIndex = (currentPage - 1) * itemsPerPage
-    const paginatedRequests = filteredRequests.slice(startIndex, startIndex + itemsPerPage)
+    const paginatedRequests = filteredRequests.slice(startIndex, startIndex + itemsPerPage) // Grab exactly 10 items starting from the index
 
-    // Reset pagination when filters change
+    // --- EVENT HANDLERS ---
+    // Reset back to page 1 whenever a filter is changed
     const handleYearChange = (e) => {
         setYearFilter(e.target.value)
         setCurrentPage(1)
@@ -269,10 +303,13 @@ function ProfilesTable({ profiles, requests, updateProfileQuotas, deleteProfile 
 }
 
 function ProfileRow({ profile, requests, updateProfileQuotas, deleteProfile }) {
-    const [isEditing, setIsEditing] = useState(false)
-    const [yearly, setYearly] = useState(profile.yearly_quota)
-    const [sick, setSick] = useState(profile.sick_quota)
+    // --- STATE VARIABLES ---
+    const [isEditing, setIsEditing] = useState(false) // Toggles the row between text mode and input mode
+    const [yearly, setYearly] = useState(profile.yearly_quota) // Controlled input for editing yearly quota
+    const [sick, setSick] = useState(profile.sick_quota)       // Controlled input for editing sick quota
 
+    // --- USAGE CALCULATIONS ---
+    // Get all requests for just this one user
     const userRequests = requests?.filter(req => req.user_id === profile.id) || []
 
     const currentYear = new Date().getFullYear().toString()

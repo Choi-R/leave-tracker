@@ -2,36 +2,52 @@ import { useState } from 'react'
 import { supabase } from './supabaseClient'
 import styles from './Login.module.css'
 
+// UpdatePassword is shown by App.jsx when the user arrives via a password reset link.
+// It accepts a prop called 'onComplete' which is a function provided by the parent (App.jsx)
+// that this component can call when it's done its job.
 export default function UpdatePassword({ onComplete }) {
+    // --- STATE VARIABLES ---
     const [loading, setLoading] = useState(false)
-    const [password, setPassword] = useState('')
+    const [password, setPassword] = useState('') // Holds the new password
     const [errorMsg, setErrorMsg] = useState('')
     const [successMsg, setSuccessMsg] = useState('')
 
+    // --- FORM SUBMISSION HANDLER ---
     const handleUpdatePassword = async (e) => {
         e.preventDefault()
         setLoading(true)
         setErrorMsg('')
         setSuccessMsg('')
 
+        // Because the user clicked a secure link in their email, Supabase securely considers
+        // them "logged in" for the purpose of updating their password.
         const { error } = await supabase.auth.updateUser({
             password: password
         })
 
         if (error) {
+            // Update failed
             setErrorMsg(error.message)
             setLoading(false)
         } else {
+            // Update succeeded
             setSuccessMsg('Your password has been updated successfully!')
             setLoading(false)
-            // Wait 2 seconds before continuing
+
+            // Wait 2 seconds so the user can actually read the success message
             setTimeout(() => {
-                // Return to normal flow, clear hash
+                // Remove the '#type=recovery' hash from the URL so we don't accidentally
+                // trigger recovery mode again if the user refreshes the page.
                 window.history.replaceState(null, '', window.location.pathname)
+
+                // Call the function passed from App.jsx. This tells App.jsx to set 
+                // recoveryMode to false, switching the UI back to Dashboard.
                 if (onComplete) onComplete()
             }, 2000)
         }
     }
+
+    // --- RENDER FLOW ---
 
     return (
         <div className={styles.container}>
@@ -74,6 +90,8 @@ export default function UpdatePassword({ onComplete }) {
                             type="button"
                             className={styles.textButton}
                             onClick={() => {
+                                // If the user cancels, we manually clean up the URL hash
+                                // and tell App.jsx we are done so it exits recovery mode.
                                 window.history.replaceState(null, '', window.location.pathname)
                                 if (onComplete) onComplete()
                             }}

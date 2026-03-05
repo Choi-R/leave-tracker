@@ -4,44 +4,53 @@ import BasicView from './BasicView'
 import AdminView from './AdminView'
 import styles from './Dashboard.module.css'
 
+// Dashboard serves as the main authenticated layout. It fetches the user's data
+// and decides whether to show the AdminView or BasicView.
 export default function Dashboard({ session }) {
-    const [loading, setLoading] = useState(true)
-    const [profile, setProfile] = useState(null)
-    const [leaveTypes, setLeaveTypes] = useState([])
-    const [requests, setRequests] = useState([])
-    const [allProfiles, setAllProfiles] = useState([])
+    // --- STATE VARIABLES ---
+    const [loading, setLoading] = useState(true) // Wait until all data is fetched
+    const [profile, setProfile] = useState(null) // The current user's database profile (name, role, quotas)
+    const [leaveTypes, setLeaveTypes] = useState([]) // List of available leave types (Sick, Annual, etc.)
+    const [requests, setRequests] = useState([]) // Array of leave requests
+    const [allProfiles, setAllProfiles] = useState([]) // Array of ALL users (only fetched if current user is admin)
     const [errorMsg, setErrorMsg] = useState('')
 
+    // --- USE EFFECT ---
+    // Fetch data immediately when the Dashboard loads
     useEffect(() => {
         fetchInitialData()
     }, [])
 
+    // --- DATA FETCHING ---
     const fetchInitialData = async () => {
         try {
             setLoading(true)
 
+            // 1. Fetch the currently logged in user's profile
             const { data: profileData, error: profileErr } = await supabase
                 .from('profiles')
                 .select('*')
-                .eq('id', session.user.id)
-                .is('deleted_at', null)
-                .single()
+                .eq('id', session.user.id) // Match the Supabase Auth ID with the Profiles table ID
+                .is('deleted_at', null)    // Ignore soft-deleted accounts
+                .single()                  // Expect exactly one row
 
             if (profileErr) throw profileErr
             setProfile(profileData)
 
+            // 2. Fetch the catalog of leave types from the database
             const { data: typesData, error: typesErr } = await supabase
                 .from('leave_types')
                 .select('*')
-                .order('name')
+                .order('name') // Sort alphabetically
 
             if (typesErr) throw typesErr
             setLeaveTypes(typesData)
 
-            // Fetch requests based on role
+            // 3. Fetch requests based on the user's role
             const currentYear = new Date().getFullYear();
 
             if (profileData.role === 'admin') {
+                // If ADMIN: Fetch EVERYONE's leave requests, and attach their profile info and leave type info
                 const { data: allReqData, error: allReqErr } = await supabase
                     .from('leave_requests')
                     .select('*, profiles(name, email), leave_types(name, category)')
@@ -51,6 +60,7 @@ export default function Dashboard({ session }) {
                 if (allReqErr) throw allReqErr
                 setRequests(allReqData)
 
+                // Admins also need a list of all users to populate the "Manage Employee" table
                 const { data: allProfData, error: allProfErr } = await supabase
                     .from('profiles')
                     .select('*')
@@ -60,12 +70,13 @@ export default function Dashboard({ session }) {
                 if (allProfErr) throw allProfErr
                 setAllProfiles(allProfData)
             } else {
+                // If BASIC USER: Only fetch their OWN leave requests
                 const { data: reqData, error: reqErr } = await supabase
                     .from('leave_requests')
                     .select('*, leave_types(name, category)')
-                    .eq('user_id', session.user.id)
+                    .eq('user_id', session.user.id) // Filter by their ID
                     .is('deleted_at', null)
-                    .order('date', { ascending: false })
+                    .order('date', { ascending: false }) // Newest first
 
                 if (reqErr) throw reqErr
                 setRequests(reqData)
@@ -77,9 +88,13 @@ export default function Dashboard({ session }) {
         }
     }
 
-    // Admin updates profile
+    // --- ADMIN ACTION HANDLERS ---
+    // These functions are passed down to the AdminView component as props.
+
+    // Edits the annual and sick quota for a specific user
     const updateProfileQuotas = async (profileId, newYearly, newSick) => {
         try {
+            // Update the database
             const { error } = await supabase
                 .from('profiles')
                 .update({ yearly_quota: newYearly, sick_quota: newSick })
@@ -117,7 +132,10 @@ export default function Dashboard({ session }) {
         }
     }
 
-    // Basic user adds new request
+    // --- USER ACTION HANDLERS ---
+    // These functions are passed down to both BasicView and AdminView (since admins can also take leave).
+
+    // Submits a new leave request to the database
     const submitLeaveRequest = async (typeId, date, amount, notes) => {
         try {
             const newRequest = {
@@ -128,6 +146,7 @@ export default function Dashboard({ session }) {
                 notes
             }
 
+            // Insert into Supabase and immediately ask for the created row back (.select().single())
             const { data, error } = await supabase
                 .from('leave_requests')
                 .insert([newRequest])
@@ -136,7 +155,9 @@ export default function Dashboard({ session }) {
 
             if (error) throw error
 
-            // Populate the mock data so it renders immediately without a hard refresh
+            // Populate the mock data so it renders immediately without a hard page refresh.
+            // When we inserted, we didn't get the joined table data (like leave_types.name),
+            // so we manually stitch it together here for the UI.
             const leaveTypeObj = leaveTypes.find(t => t.id === typeId)
             const populatedReq = {
                 ...data,
@@ -238,6 +259,11 @@ export default function Dashboard({ session }) {
             </header>
 
             <main className={styles.main}>
+                {/* 
+                    Conditional Rendering: 
+                    If the profile role is 'admin', render the AdminView and pass it all the admin-specific props.
+                    Otherwise, render the BasicView.
+                */}
                 {profile.role === 'admin' ? (
                     <AdminView
                         profile={profile}

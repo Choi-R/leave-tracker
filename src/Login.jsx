@@ -2,41 +2,58 @@ import { useState } from 'react'
 import { supabase } from './supabaseClient'
 import styles from './Login.module.css'
 
+// Login component handles both signing in and requesting a password reset
 export default function Login() {
-    const [loading, setLoading] = useState(false)
-    const [email, setEmail] = useState('')
-    const [password, setPassword] = useState('')
-    const [errorMsg, setErrorMsg] = useState('')
-    const [successMsg, setSuccessMsg] = useState('')
-    const [isResetMode, setIsResetMode] = useState(false)
+    // --- STATE VARIABLES ---
+    const [loading, setLoading] = useState(false) // True when waiting for Supabase
+    const [email, setEmail] = useState('') // Controlled input for email address
+    const [password, setPassword] = useState('') // Controlled input for password
+    const [errorMsg, setErrorMsg] = useState('') // Message to show if login fails
+    const [successMsg, setSuccessMsg] = useState('') // Message to show if reset link is sent
+    const [isResetMode, setIsResetMode] = useState(false) // Toggles between "Sign In" and "Forgot Password" forms
 
+    // --- FORM SUBMISSION HANDLER ---
+    // This runs when the user clicks the "Sign In" or "Send Reset Link" button
     const handleLogin = async (e) => {
+        // e.preventDefault() stops the browser from refreshing the page when submitting the form
         e.preventDefault()
         setLoading(true)
         setErrorMsg('')
         setSuccessMsg('')
 
+        // Check which mode the form is in
         if (isResetMode) {
+            // IF IN RESET MODE: Ask Supabase to send a reset email
             const { error } = await supabase.auth.resetPasswordForEmail(email, {
+                // redirectTo tells Supabase where to send the user after they click the email link.
+                // window.location.origin is the base URL of our app (e.g. http://localhost:5173)
                 redirectTo: window.location.origin,
             })
             if (error) {
-                setErrorMsg(error.message)
+                setErrorMsg(error.message) // Show error if Supabase complains (e.g. invalid email)
             } else {
                 setSuccessMsg('Password reset instructions sent to your email.')
             }
         } else {
+            // IF IN LOGIN MODE: Ask Supabase to sign the user in
             const { error } = await supabase.auth.signInWithPassword({
                 email,
                 password,
             })
 
+            // Note: If sign-in is successful, the App.jsx 'onAuthStateChange' listener 
+            // will notice automatically and switch the view to Dashboard. We don't need to 
+            // manually redirect here. We only handle errors.
             if (error) {
                 setErrorMsg(error.message)
             }
         }
+
+        // Operation finished, turn off loading state
         setLoading(false)
     }
+
+    // --- RENDER FLOW ---
 
     return (
         <div className={styles.container}>
@@ -53,8 +70,10 @@ export default function Login() {
                 </div>
 
                 <form onSubmit={handleLogin} className={styles.form}>
+                    {/* Conditionally render error or success messages if they exist */}
                     {errorMsg && <div className={styles.error}>{errorMsg}</div>}
                     {successMsg && <div className={styles.success}>{successMsg}</div>}
+
                     <div className={styles.inputGroup}>
                         <label htmlFor="email" className={styles.label}>Email Address</label>
                         <input
@@ -62,11 +81,15 @@ export default function Login() {
                             className={styles.input}
                             type="email"
                             placeholder="name@company.com"
+                            // Tie the input value to the 'email' state variable
                             value={email}
+                            // Update the state variable every time the user types a character
                             onChange={(e) => setEmail(e.target.value)}
                             required
                         />
                     </div>
+
+                    {/* Only show the password field if we are NOT in reset mode */}
                     {!isResetMode && (
                         <div className={styles.inputGroup}>
                             <label htmlFor="password" className={styles.label}>Password</label>
@@ -87,12 +110,15 @@ export default function Login() {
                             : (isResetMode ? 'Send Reset Link' : 'Sign In')}
                     </button>
 
+                    {/* Toggle between "Sign In" and "Forgot Password" */}
                     <div className={styles.toggleMode}>
                         <button
                             type="button"
                             className={styles.textButton}
                             onClick={() => {
+                                // Flip the boolean state
                                 setIsResetMode(!isResetMode)
+                                // Clear any leftover messages
                                 setErrorMsg('')
                                 setSuccessMsg('')
                             }}
